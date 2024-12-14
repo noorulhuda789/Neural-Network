@@ -1,0 +1,110 @@
+import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QVBoxLayout, QWidget
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtCore import Qt
+import numpy as np
+from PIL import Image
+from model import*
+
+class LaptopMonitorRecognizer(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Laptop and Monitor Recognizer")
+        self.setGeometry(100, 100, 800, 600)
+        
+        self.image_path = None
+        self.init_ui()
+
+    def init_ui(self):
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        self.central_widget.setStyleSheet("background-color: black;")
+
+        self.layout = QVBoxLayout()
+        self.central_widget.setLayout(self.layout)
+
+        self.setup_title()
+        self.setup_image_label()
+        self.setup_result_label()
+        self.setup_buttons()
+
+    def setup_title(self):
+        self.label_title = QLabel("Laptop and Monitor Recognition")
+        self.label_title.setAlignment(Qt.AlignCenter)
+        self.label_title.setStyleSheet("color: red; font-size: 24px; font-weight: bold; margin-bottom: 20px;")
+        self.layout.addWidget(self.label_title)
+
+    def setup_image_label(self):
+        self.label_image = QLabel()
+        self.label_image.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(self.label_image)
+
+    def setup_result_label(self):
+        self.label_result = QLabel()
+        self.label_result.setAlignment(Qt.AlignCenter)
+        self.label_result.setStyleSheet("color: white; font-size: 18px;")
+        self.layout.addWidget(self.label_result)
+
+    def setup_buttons(self):
+        self.button_upload = QPushButton("Upload Image")
+        self.button_upload.clicked.connect(self.upload_image)
+        self.button_upload.setStyleSheet("color: white; font-size: 18px;")
+        self.button_upload.setCursor(Qt.PointingHandCursor)
+        self.button_upload.setObjectName("uploadButton")
+        self.layout.addWidget(self.button_upload)
+
+        self.button_train = QPushButton("Train Model")
+        self.button_train.clicked.connect(self.train_model)
+        self.button_train.setStyleSheet("color: white; font-size: 18px;")
+        self.button_train.setCursor(Qt.PointingHandCursor)
+        self.button_train.setObjectName("trainButton")
+        self.layout.addWidget(self.button_train)
+
+    def upload_image(self):
+        options = QFileDialog.Options()
+        self.image_path, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "", "Images (*.png *.xpm *.jpg);;All Files (*)", options=options)
+        if self.image_path:
+            self.display_image(self.image_path)
+
+    def display_image(self, image_path):
+        image = Image.open(image_path)
+        image = image.resize((400, 400), Image.LANCZOS)
+        image = image.convert("RGBA")
+        
+        data = image.tobytes("raw", "RGBA")
+        qim = QImage(data, image.width, image.height, QImage.Format_RGBA8888)
+        pixmap = QPixmap.fromImage(qim)
+        
+        self.label_image.setPixmap(pixmap)
+
+    def train_model(self):
+        np.random.seed(1)
+        train_x, train_y = load_data_from_memmap(memmap_filename='images_memmap.dat', labels_filename='labels.npy')
+        dimensions = [12288, 120, 60, 5, 1]
+        L_layer_model(train_x, train_y, dimensions, num_iterations = 2500, print_cost = True)
+
+    def profile_code():
+            cProfile.run('re.compile("foo|bar")', 'restats')
+            with open('restats', 'rb') as f:
+                stats = pstats.Stats('restats')
+                stats.strip_dirs()
+                stats.sort_stats(pstats.SortKey.TIME)
+                stats.print_stats()
+
+
+
+
+    def recognize_image(self, image_path):
+        para=load_parameters()
+        predict_image(para, image_path)
+
+def main():
+    app = QApplication(sys.argv)
+    window = LaptopMonitorRecognizer()
+    window.show()
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
